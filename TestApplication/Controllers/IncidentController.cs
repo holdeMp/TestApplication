@@ -27,36 +27,25 @@ namespace TestApplication.Controllers
         public async Task<ActionResult> Create([FromBody] IncidentModel incident)
         {
             var accounts = _mapper.Map<ICollection<AccountModel>, ICollection<Account>>(incident.Accounts);
-            var accountWithExistingNames = accounts.Where(i => _dbContext.Accounts.Select(i => i.Name).Contains(i.Name)).ToList();
+            var existingAccountsNames = _dbContext.Accounts.Select(i=>i.Name);
+            var ifAreAccountsWithExistingNames = accounts.Select(i=>i.Name).Intersect(existingAccountsNames).Any();
+            if (ifAreAccountsWithExistingNames) {
+
+                return BadRequest("One or more accounts already exists");
+            }
             var newIncident = _mapper.Map<IncidentModel, Incident>(incident);
+            newIncident.Accounts = accounts;
             try
             {
-                if (accountWithExistingNames.Count > 0) {
-                    
-                    foreach (var account in accountWithExistingNames)
-                    {
-                        accounts.Remove(account);
-                    }
-                    newIncident.Accounts = accounts;
-                    var result = await _dbContext.Incidents.AddAsync(newIncident);
-                    await _dbContext.SaveChangesAsync();
-                    foreach(var account in accountWithExistingNames)
-                    {
-                        var sqlQuery = $"Update Accounts Set IncidentName = '{result.Entity.Name}' Where Name = '{ account.Name}'";
-                        _dbContext.Database.ExecuteSqlRaw(sqlQuery);
-                    }
-                    await _dbContext.SaveChangesAsync();
-                    return Ok(result.Entity);
-                }
-                newIncident.Accounts = accounts;
-                var result1 = await _dbContext.Incidents.AddAsync(newIncident);
+                var result = await _dbContext.Incidents.AddAsync(newIncident);
                 await _dbContext.SaveChangesAsync();
-                return Ok(result1.Entity);
+                return Ok(result.Entity);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
+
         }
     }
 }

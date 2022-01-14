@@ -27,30 +27,20 @@ namespace TestApplication.Controllers
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] AccountModel account)
         {
-            var contactsWithExistingEmail = account.Contacts.Where(i=> _dbContext.Contacts.Select(i=>i.Email).Contains(i.Email)).ToList();
-            var contactsWithExistingEmailWithIds = _dbContext.Contacts.Where(i => account.Contacts.Select(i => i.Email).Contains(i.Email)).ToList();
+            var contactsEmails = _dbContext.Contacts.Select(i => i.Email);
+            var ifAreContactsWithExistingEmail = account.Contacts.Select(i=>i.Email).Intersect(contactsEmails).Any();
+
+            if (ifAreContactsWithExistingEmail)
+            {
+                return BadRequest("One or more contacts already exists");
+            }
+            var newAccount = _mapper.Map<AccountModel, Account>(account);
             try
             {
-                if (contactsWithExistingEmail.Count > 0)
-                {
-                    foreach (var contact in contactsWithExistingEmail) {
-                        account.Contacts.Remove(contact);
-                    }
-                    
-                    await _dbContext.Accounts.AddAsync(_mapper.Map<AccountModel, Account>(account));
-                    await _dbContext.SaveChangesAsync();
-                    var accountId = _dbContext.Accounts.OrderByDescending(p => p.Id).FirstOrDefault().Id;
-                    foreach (var contact in contactsWithExistingEmailWithIds)
-                    {
-                        _dbContext.Database.ExecuteSqlRaw($"Update Contacts Set AccountId = {accountId} Where Id = {contact.Id}");
-                    }
-                    await _dbContext.SaveChangesAsync();
-                    return Ok(_dbContext.Accounts.OrderByDescending(p => p.Id).FirstOrDefault());
-                }
-                var newAccount = _mapper.Map<AccountModel, Account>(account);
-                await _dbContext.Accounts.AddAsync(newAccount);
+                
+                var result = await _dbContext.Accounts.AddAsync(newAccount);
                 await _dbContext.SaveChangesAsync();
-                return Ok(_dbContext.Accounts.OrderByDescending(p => p.Id).FirstOrDefault());
+                return Ok(result.Entity);
             }
             catch (Exception ex)
             {

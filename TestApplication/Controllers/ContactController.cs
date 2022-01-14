@@ -1,8 +1,10 @@
 ﻿using BLL;
 using DAL;
 using DAL.Entities;
+using DAL.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +17,11 @@ namespace TestApplication.Controllers
     public class ContactController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
-        public ContactController(ApplicationDbContext applicationDbContext)
+        private readonly IContactRepository _contactRepository;
+        public ContactController(IContactRepository contactRepository, ApplicationDbContext applicationDbContext)
         {
             _dbContext = applicationDbContext;
+            _contactRepository = contactRepository;
 
         }
         [HttpPost]
@@ -39,8 +43,7 @@ namespace TestApplication.Controllers
                 existingContact.Account = account;
                 try
                 {
-                    _dbContext.Entry(existingContact).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                    await _dbContext.SaveChangesAsync();
+                    _contactRepository.Update(existingContact);
                     return Ok(existingContact);
                 }
                 catch (Exception ex)
@@ -57,13 +60,14 @@ namespace TestApplication.Controllers
             };
             try
             {
-                var result = await _dbContext.Contacts.AddAsync(contact);
-                return Ok(result.Entity);
+                await _contactRepository.AddAsync(contact);
+                return Ok(contact);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
+
     }
 }

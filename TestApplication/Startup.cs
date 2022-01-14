@@ -1,6 +1,8 @@
 using AutoMapper;
 using BLL;
 using DAL;
+using DAL.Interfaces;
+using DAL.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -33,9 +35,10 @@ namespace TestApplication
             var configuration = new MapperConfiguration(cfg => cfg.AddProfile(myProfile));
             services.AddTransient<IMapper>(s => new Mapper(configuration));
             services.AddDbContext<ApplicationDbContext>();
+            services.AddTransient<IContactRepository, ContactRepository>();
             services.AddControllers().AddNewtonsoftJson(options =>
-    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
-);
+                options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+            );
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "ForumApi", Version = "v1" });
