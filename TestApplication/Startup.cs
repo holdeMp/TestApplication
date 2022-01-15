@@ -36,6 +36,7 @@ namespace TestApplication
             services.AddTransient<IMapper>(s => new Mapper(configuration));
             services.AddDbContext<ApplicationDbContext>();
             services.AddTransient<IContactRepository, ContactRepository>();
+            services.AddTransient<IAccountRepository, AccountRepository>();
             services.AddControllers().AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
             );

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BLL.Models;
 using DAL;
+using DAL.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,24 +18,33 @@ namespace TestApplication.Controllers
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IMapper _mapper;
+        private readonly IAccountRepository _accountRepository;
         public IncidentController(ApplicationDbContext applicationDbContext,
-            IMapper mapper)
+            IMapper mapper,
+            IAccountRepository accountRepository)
         {
             _dbContext = applicationDbContext;
             _mapper = mapper;
+            _accountRepository = accountRepository;
         }
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] IncidentModel incident)
         {
-            var accounts = _mapper.Map<ICollection<AccountModel>, ICollection<Account>>(incident.Accounts);
-            var existingAccountsNames = _dbContext.Accounts.Select(i=>i.Name);
-            var ifAreAccountsWithExistingNames = accounts.Select(i=>i.Name).Intersect(existingAccountsNames).Any();
-            if (ifAreAccountsWithExistingNames) {
+            var newIncident = new Incident { Description = incident.Description , Accounts = new List<Account>() };
 
-                return BadRequest("One or more accounts already exists");
+            foreach (var accountName in incident.Accounts)
+            {
+                var account = _accountRepository.FindByNameAsync(accountName.Name).Result;
+                if (account != null)
+                {
+                    newIncident.Accounts.Add(account);
+                    account.Incident = newIncident;
+                    
+                    continue;
+                }
+                var newAccount = new Account { Incident = newIncident, Name = accountName.Name };
+                newIncident.Accounts.Add(newAccount);
             }
-            var newIncident = _mapper.Map<IncidentModel, Incident>(incident);
-            newIncident.Accounts = accounts;
             try
             {
                 var result = await _dbContext.Incidents.AddAsync(newIncident);

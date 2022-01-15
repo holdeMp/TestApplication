@@ -7,6 +7,6 @@ namespace BLL.Models
     public class IncidentModel
     {
         public string Description {get;set;}
-        public ICollection<AccountModel> Accounts { get; set; }
+        public ICollection<IncidentAccountModel> Accounts { get; set; }
     }
 }
